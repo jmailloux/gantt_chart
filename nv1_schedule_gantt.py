@@ -3,6 +3,7 @@
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
+from collections import defaultdict
 
 # ---- Timeline axis (months) ----
 MONTHS = [
@@ -15,8 +16,6 @@ def m(label: str) -> int:
     return MONTHS.index(label)
 
 # ---- Activities (final state) ----
-# One row per bar. If an activity spans multiple disjoint periods (e.g., Alpha+ Testing / Demos),
-# list them as separate rows.
 # Fields: (label, start_month, end_month, phase)
 TASKS = [
     # ALPHA
@@ -30,13 +29,14 @@ TASKS = [
     ("Testing / Demos",                    "Mar-26", "Aug-26", "alpha_plus"),
 
     # BETA
-    ("Hull Design",                        "Aug-25", "Sep-25", "beta"),
-    ("Hull Build",                         "Sep-25", "Mar-26", "beta"),
-    ("Interior Design",                    "Sep-25", "Apr-26", "beta"),
-    ("Mechanical / Electrical Design",     "Aug-25", "Apr-26", "beta"),
-    ("Battery Sourcing",                   "Nov-25", "Feb-26", "beta"),
-    ("Mechanical / Electrical Build",      "Mar-26", "Jul-26", "beta"),
-    ("Testing / Demos",                    "Jun-26", "Dec-26", "beta"),
+    ("Hull Design",                        "Aug-25", "Dec-25", "beta"),
+    ("Hull Build",                         "Jan-26", "Jul-26", "beta"),
+    ("Interior Design",                    "Sep-25", "Sep-26", "beta"),
+    ("Mech / Elec Design",                 "Aug-25", "Sep-26", "beta"),
+    ("Mech / Elec Supplier Selection",     "Aug-25", "Sep-26", "beta"),
+    ("Mech / Elec Sourcing",               "Mar-26", "Jun-26", "beta"),
+    ("Mechanical / Electrical Build",      "Jul-26", "Oct-26", "beta"),
+    ("Testing / Demos",                    "Nov-26", "Dec-26", "beta"),
 ]
 
 # Convert month strings to indices
@@ -49,22 +49,34 @@ COLORS = {
     "beta":       "#0d3b66",  # dark blue
 }
 
+# ---- Group by (label, phase) so only same label+activity share a row ----
+groups = defaultdict(list)  # key: (label, phase) -> list of (start_i, end_i)
+for label, start_i, end_i, phase in tasks_idx:
+    groups[(label, phase)].append((start_i, end_i))
+
+PHASE_PRETTY = {"alpha": "Alpha", "alpha_plus": "Alpha+", "beta": "Beta"}
+
 # ---- Plot ----
 fig, ax = plt.subplots(figsize=(12, 6))
 
-for i, (label, start_i, end_i, phase) in enumerate(tasks_idx):
-    ax.barh(
-        y=i,
-        width=(end_i - start_i + 1),       # inclusive months
-        left=start_i,
-        height=0.5,
-        align="center",
-        color=COLORS[phase],
-        edgecolor="none"
-    )
+rows = list(groups.keys())  # list of (label, phase) pairs in insertion order
+for y, (label, phase) in enumerate(rows):
+    for start_i, end_i in groups[(label, phase)]:
+        ax.barh(
+            y=y,
+            width=(end_i - start_i + 1),       # inclusive months
+            left=start_i,
+            height=0.5,
+            align="center",
+            color=COLORS[phase],
+            edgecolor="none"
+        )
 
-ax.set_yticks(range(len(tasks_idx)))
-ax.set_yticklabels([t[0] for t in tasks_idx])
+# Build y tick labels
+ylabels = [label for (label, _) in rows]
+
+ax.set_yticks(range(len(rows)))
+ax.set_yticklabels(ylabels)
 
 ax.set_xticks(range(len(MONTHS)))
 ax.set_xticklabels(MONTHS, rotation=45, ha="right")
@@ -84,3 +96,6 @@ ax.legend(handles=legend_elements, loc="upper right")
 plt.tight_layout()
 plt.savefig("high_level_nv1_alpha_beta_engineering_schedule.png", dpi=300)
 print("Saved: high_level_nv1_alpha_beta_engineering_schedule.png")
+
+# Show the chart immediately (blocks until the window is closed)
+plt.show()
