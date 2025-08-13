@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 from collections import defaultdict
 
-from nv1_schedule_data import MONTHS, TASKS, MILESTONES
+from nv1_gantt_data import MONTHS, TASKS, MILESTONES
 
 # ---- Helpers ----
 def m(label: str) -> int:
